@@ -71,4 +71,3 @@ Deploy to Vercel (frontend) and Render (backend)
 Author
 Dan Afful
 Senior Information Science Student
-[LinkedIn](https://www.linkedin.com/in/dan-afful00/)
