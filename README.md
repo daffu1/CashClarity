@@ -62,12 +62,13 @@ CashClarity/
 ├── .gitignore
 ├── README.md
 
-ROADMAP
+Roadmap
 Add data visualizations (charts, graphs)
 Multi-PDF support
 User login & dashboard
 Deploy to Vercel (frontend) and Render (backend)
 
-AUTHOR
+Author
 Dan Afful
 Senior Information Science Student
+[LinkedIn](https://www.linkedin.com/in/YOUR-USERNAME)
