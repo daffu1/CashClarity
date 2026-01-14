@@ -76,23 +76,24 @@ def extract_transactions_from_pdf(pdf_path):
                                 .strip()
                         )
                         transactions.append({
-                            "date": date.isoformat(),
+                            "date": date.strftime("%m/%d/%Y"),
                             "description": description,
                             "amount": amount
                         })
+
                     except Exception as e:
                         print(f"⚠️ Skipped line due to error: {e}")
                         continue
     return transactions
 
 def parse_date(date_str):
-    """Try both 2-digit and 4-digit year formats."""
-    for fmt in ("%m/%d/%y", "%m/%d/%Y"):
+    try:
+        return datetime.strptime(date_str, "%m/%d/%Y").date()
+    except ValueError:
         try:
-            return datetime.strptime(date_str, fmt).date()
+            return datetime.strptime(date_str, "%m/%d/%y").date()
         except ValueError:
-            continue
-    raise ValueError(f"Unrecognized date format: {date_str}")
+            return None
 
 if __name__ == "__main__":
     app.run(debug=True)

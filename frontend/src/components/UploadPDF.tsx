@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import type { DragEvent } from "react";
-import Charts from "./Charts"; // Chart component to visualize transactions
+//import Charts from "./Charts"; 
+import TransactionChart from "./TransactionChart";
 
 type Transaction = {
   date: string;
@@ -60,6 +61,7 @@ const UploadPDF = () => {
       }
 
       const data = await response.json();
+      console.log("🧾 Raw transactions from server:", data.transactions);
       setTransactions(data.transactions);
       setUploadMessage("Upload successful!");
     } catch (error) {
@@ -132,7 +134,7 @@ const UploadPDF = () => {
           <h3 className="text-lg font-semibold mb-4 text-center">
             Spending Overview
           </h3>
-          <Charts data={transactions} />
+          <TransactionChart data={transactions} />
         </div>
       )}
     </div>
