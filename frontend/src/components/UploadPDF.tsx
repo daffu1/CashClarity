@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import type { DragEvent } from "react";
-//import Charts from "./Charts"; 
 import TransactionChart from "./TransactionChart";
 
 type Transaction = {
@@ -15,6 +14,8 @@ const UploadPDF = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [summary, setSummary] = useState<string | null>(null);
+  const [isSummarizing, setIsSummarizing] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFile(e.target.files?.[0] || null);
@@ -50,18 +51,16 @@ const UploadPDF = () => {
     try {
       setIsLoading(true);
       setUploadMessage("Uploading your file...");
+      setSummary(null);
 
       const response = await fetch("http://localhost:5000/api/upload", {
         method: "POST",
         body: formData,
       });
 
-      if (!response.ok) {
-        throw new Error("Upload failed");
-      }
+      if (!response.ok) throw new Error("Upload failed");
 
       const data = await response.json();
-      console.log("🧾 Raw transactions from server:", data.transactions);
       setTransactions(data.transactions);
       setUploadMessage("Upload successful!");
     } catch (error) {
@@ -69,6 +68,35 @@ const UploadPDF = () => {
       setUploadMessage("Upload failed. Please try again.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchSummary = async () => {
+    if (!transactions.length) return;
+
+    const summaryText = transactions
+      .map((t) => `${t.date} - ${t.description}: $${t.amount.toFixed(2)}`)
+      .join("\n");
+
+    try {
+      setIsSummarizing(true);
+      setSummary("Generating summary...");
+
+      const response = await fetch("http://localhost:5000/api/summary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ summary: summaryText }),
+      });
+
+      if (!response.ok) throw new Error("Summary generation failed");
+
+      const data = await response.json();
+      setSummary(data.advice); // Make sure backend returns key "advice"
+    } catch (error) {
+      console.error("Summary error:", error);
+      setSummary("Failed to generate summary. Please try again.");
+    } finally {
+      setIsSummarizing(false);
     }
   };
 
@@ -96,18 +124,13 @@ const UploadPDF = () => {
           <label htmlFor="file-upload" className="cursor-pointer">
             <div className="text-4xl mb-3">📄</div>
             <p className="text-base">
-              Drag & Drop your file or{" "}
-              <span className="text-blue-500 underline">Browse</span>
+              Drag & Drop your file or <span className="text-blue-500 underline">Browse</span>
             </p>
           </label>
-          {file && (
-            <p className="mt-4 text-sm text-gray-600">Selected: {file.name}</p>
-          )}
+          {file && <p className="mt-4 text-sm text-gray-600">Selected: {file.name}</p>}
         </div>
 
-        {uploadMessage && (
-          <p className="text-center text-sm mb-4">{uploadMessage}</p>
-        )}
+        {uploadMessage && <p className="text-center text-sm mb-4">{uploadMessage}</p>}
 
         <div className="flex justify-between text-sm text-gray-500 mb-6">
           <span>Format: PDF</span>
@@ -118,9 +141,7 @@ const UploadPDF = () => {
           <button
             onClick={handleUpload}
             className={`px-8 py-3 rounded-md text-white text-base transition ${
-              isLoading
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700"
+              isLoading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
             }`}
             disabled={isLoading}
           >
@@ -131,10 +152,25 @@ const UploadPDF = () => {
 
       {transactions.length > 0 && (
         <div className="mt-10 w-full max-w-3xl">
-          <h3 className="text-lg font-semibold mb-4 text-center">
-            Spending Overview
-          </h3>
+          <h3 className="text-lg font-semibold mb-4 text-center">Spending Overview</h3>
           <TransactionChart data={transactions} />
+
+          <div className="flex justify-center mt-6">
+            <button
+              onClick={fetchSummary}
+              className="bg-indigo-600 text-white px-6 py-2 rounded-md text-sm hover:bg-indigo-700 transition"
+              disabled={isSummarizing}
+            >
+              {isSummarizing ? "Analyzing..." : "Get Summary"}
+            </button>
+          </div>
+
+          {summary && (
+            <div className="bg-white shadow-md rounded-md mt-6 p-4 border border-gray-200">
+              <h4 className="font-semibold text-md mb-2">AI Summary</h4>
+              <p className="text-sm text-gray-700 whitespace-pre-wrap">{summary}</p>
+            </div>
+          )}
         </div>
       )}
     </div>

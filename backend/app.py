@@ -4,6 +4,7 @@ import os
 import pdfplumber
 import re
 from datetime import datetime
+from ai.coach import generate_budget_advice
 
 app = Flask(__name__)
 CORS(app)
@@ -13,40 +14,46 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 @app.route("/")
 def home():
-    return "✅ Backend is running"
+    return "Backend is running"
 
 @app.route("/api/upload", methods=["POST"])
 def upload():
-   
-    print("📥 Incoming request:", request.content_type)
-
     if "file" not in request.files:
-        print("❌ No file part in request.files")
         return jsonify({"error": "No file part in request"}), 400
 
     file = request.files["file"]
 
     if file.filename == "":
-        print("❌ No file selected")
         return jsonify({"error": "No selected file"}), 400
 
-    
     file_path = os.path.join(UPLOAD_FOLDER, file.filename)
     try:
         file.save(file_path)
-        print(f"📂 File saved to {file_path}")
     except Exception as e:
-        print(f"❌ Error saving file: {e}")
         return jsonify({"error": "Failed to save file"}), 500
 
-    
     try:
         transactions = extract_transactions_from_pdf(file_path)
     except Exception as e:
-        print(f"❌ Error extracting transactions: {e}")
         return jsonify({"error": "Failed to extract transactions"}), 500
 
     return jsonify({"transactions": transactions})
+
+@app.route("/api/summary", methods=["POST"])
+def summarize():
+    try:
+        data = request.get_json()
+        summary_text = data.get("summary")
+
+        if not summary_text:
+            return jsonify({"error": "Missing summary"}), 400
+
+        advice = generate_budget_advice(summary_text)
+        return jsonify({"advice": advice})
+
+    except Exception as e:
+        print("Error generating advice:", e)
+        return jsonify({"error": "Failed to generate summary"}), 500
 
 date_pattern = re.compile(r"\b(\d{2}/\d{2}/\d{2,4})\b")
 amount_pattern = re.compile(r"\$\d{1,3}(?:,\d{3})*(?:\.\d{2})?")
@@ -60,7 +67,6 @@ def extract_transactions_from_pdf(pdf_path):
         for page_num, page in enumerate(pdf.pages, start=1):
             text = page.extract_text()
             if not text:
-                print(f"⚠️ Page {page_num} has no text.")
                 continue
             for line in text.split("\n"):
                 date_match = date_pattern.search(line)
@@ -80,9 +86,7 @@ def extract_transactions_from_pdf(pdf_path):
                             "description": description,
                             "amount": amount
                         })
-
                     except Exception as e:
-                        print(f"⚠️ Skipped line due to error: {e}")
                         continue
     return transactions
 
